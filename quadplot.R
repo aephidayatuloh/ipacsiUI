@@ -30,7 +30,7 @@ quadplot <- function(ipacsi, legend.pos = "right", ...){
     geom_point(aes_string(color = "Attribute", size = "Conformity")) +
     geom_hline(yintercept = avg$Importance, linetype = 2, color = "coral") +
     geom_vline(xintercept = avg$Performance, linetype = 2, color = "coral") +
-    geom_text(mapping = aes_string(label = "Attribute"), vjust = -0.9) +
+    geom_text(mapping = aes_string(label = "Attribute"), vjust = -0.9, size = 3) +
     xlim(floor(min(dt$Performance)), 5) +
     ylim(floor(min(dt$Importance)), 5) +
     labs(title = "Conformity of Performance and Importance (%)",

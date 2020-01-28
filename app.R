@@ -7,7 +7,7 @@ library(shinyWidgets)
 
 ui <- bs4DashPage(navbar = bs4DashNavbar(skin = "light", status = "white", 
                                          leftUi = fluidRow(icon("check-double"), h4("Respondents Satisfaction Index Analysis", style="font-weight:bold;color:#349eeb;margin-top:3px;")),
-                                         rightUi = actionBttn(inputId = "faq", label = NULL, style = "jelly", icon = icon("question-circle"), color = "primary", size = "sm")
+                                         rightUi = fluidRow(downloadBttn(outputId = "template", label = "Template", style = "unite", color = "default", size = "xs", block = FALSE, no_outline = TRUE), actionBttn(inputId = "faq", label = NULL, style = "unite", icon = icon("question-circle"), color = "default", size = "xs"), style="margin-right:5px;")
                                          ), 
                   sidebar = bs4DashSidebar(inputId = "tabs", disable = TRUE), 
                   body = bs4DashBody(
@@ -15,13 +15,14 @@ ui <- bs4DashPage(navbar = bs4DashNavbar(skin = "light", status = "white",
                     br(),
                     fluidRow(
                       column(3,
-                             bs4Card(width = 12, title = "Data", status = "primary", closable = FALSE, collapsible = FALSE,
-                                     fileInput("data", "Upload Data", width = "100%",
+                             bs4Card(width = 12, status = "primary", closable = FALSE, collapsible = FALSE,
+                                     title = "Data",
+                                                      # downloadBttn(outputId = "template", label = "Template", class = "btn btn-info", 
+                                                      #              style = "height: 35px;background:#fff;color:#4dc3eb;font-weight:bold;")),
+                                     fileInput("data", NULL, width = "100%", buttonLabel = "Upload...",
                                                accept = c('.xls', '.xlsx')
                                                ),
-                                     column(12,
-                                            uiOutput("sheets")
-                                     )
+                                     uiOutput("sheets")
                                      )
                              ),
                       column(3,
@@ -82,8 +83,7 @@ server <- function(input, output, session){
                 selectInput("performance", "Performance Sheet", choices = excel_sheets(input$data$datapath), selected = excel_sheets(input$data$datapath)[2]),
                 selectInput("importance", "Importance Sheet", choices = excel_sheets(input$data$datapath), selected = excel_sheets(input$data$datapath)[1]),
                 actionBttn(inputId = "submit", label = "Process", block = TRUE,
-                           style = "simple", color = "primary", icon = icon("cogs")),
-                br()
+                           style = "simple", color = "primary", icon = icon("cogs"), size = "sm")
                 )
       } else {
         return(NULL)
@@ -95,8 +95,7 @@ server <- function(input, output, session){
     output$index <- renderUI({
       if(!is.null(ic())){
         avg <- ic()$Average
-        bs4Card(width = 12, height = 485, title = "Index", status = "primary", closable = FALSE, collapsible = FALSE,
-                br(),
+        bs4Card(width = 12, height = 420, title = "Index", status = "primary", closable = FALSE, collapsible = FALSE,
                 bs4InfoBox(value = h3(round(avg$Performance, 2), style = "font-weight:bold;"), 
                            title = "Performance Index", width = 12, 
                            status = "primary", icon = "chart-line"),
@@ -130,20 +129,19 @@ server <- function(input, output, session){
       return(NULL)
     } else {
       # g <- quadplot(ic())
-      ggplotly(plots()) %>% 
+      ggplotly(plots(), height = 360, width = 600)  %>% 
+        # layout(height = 360, width = 600) %>% 
         config(displayModeBar = FALSE)
-        # plotly::config(displaylogo = FALSE, 
-        #                modeBarButtonsToRemove = c("select2d", "zoom2d", "zoomIn2d", "lasso2d", "autoScale2d", 
-        #                                           "toggleSpikelines", "hoverCompareCartesian", "hoverClosestCartesian"))
     }
   })
   
   observeEvent(input$submit, {
     output$quadrant <- renderUI({
       if(!is.null(ic())){
-        bs4Card(width = 12, height = 485, title = "Quadrant", status = "primary", closable = FALSE, collapsible = FALSE,
-                uiOutput("savebtn"),
-                plotlyOutput("plot")
+        bs4Card(width = 12, height = 420, 
+                title = "Quadrant", status = "primary", closable = FALSE, collapsible = FALSE,
+                fluidRow(uiOutput("savebtn"), uiOutput("savetblui")),
+                div(style="margin-top:5px;", plotlyOutput("plot"))
         )
       } else {
         return(NULL)
@@ -158,7 +156,19 @@ server <- function(input, output, session){
         return(NULL)
       } else {
         downloadBttn(outputId = "savepng", label = "Save Plot", 
-                     style = "bordered", color = "primary", size = "sm")
+                     style = "unite", color = "default", size = "xs", )
+      }
+    })
+  })
+
+  observeEvent(input$submit, {
+    # req(input$data)
+    output$savetblui <- renderUI({
+      if(is.null(ic())){
+        return(NULL)
+      } else {
+        downloadBttn(outputId = "savetbl", label = "Save Table", 
+                     style = "unite", color = "default", size = "xs", )
       }
     })
   })
@@ -170,13 +180,28 @@ server <- function(input, output, session){
     }
   )
   
+  output$template <- downloadHandler(
+    filename = "questionnaire.xlsx",
+    content = function(con){
+      file.copy("questionnaire.xlsx", to = con)
+    }
+  )
+  
+  output$savetbl <- downloadHandler(
+    filename = "Result.csv",
+    content = function(con){
+      write.csv(ic()$Result, file = con, row.names = FALSE)
+    }
+  )
+  
   observeEvent(input$faq, {
     shinyalert(title = "Get Started",
                text = "<ul style = 'text-align:left;list-style-type:disc;'>
                <li>Input file must an Excel (*.xls or *.xlsx) file.</li> 
-               <li>It at least consist of two sheets.</li> 
+               <li>At least consist of two sheets.</li> 
                <li>Each sheet represent data for performance and importance survey result.</li>
-               </ul>",
+               </ul>
+               <br/>",
                type = "warning", html = TRUE
                )
     })
